@@ -30,6 +30,8 @@ enum PowerLevel
 
 void SetPowerLevel(PowerLevel powerLevel);
 void PrintToScreen(char lineOneMessage[], char lineTwoMessage[]);
+void IncreasePower(PowerLevel currentPowerLevel);
+void DecreasePower(PowerLevel currentPowerLevel);
 
 unsigned char power = 0;
 
@@ -44,10 +46,29 @@ void main(void)
     PR2 = 249;
     CCPR1L = 0x7D;
     CCP1CON = 0b01001100;
-    PowerLevel powerLevel = PowerLevel.Low;
+    
+    SetPowerLevel(PowerLevel.Off);
     
     //Prevents main function from accessing invalid memory
     while(1);
+}
+
+/**
+ * Increases power level by one
+ * @param currentPowerLevel Current power level
+ */
+void IncreasePower(PowerLevel currentPowerLevel)
+{
+    //TODO: Write logic here
+}
+
+/**
+ * Decrease power level by one
+ * @param currentPowerLevel  Current power level
+ */
+void DecreasePower(PowerLevel currentPowerLevel)
+{
+    //TODO: Write logic here
 }
 
 /**
