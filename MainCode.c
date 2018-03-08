@@ -17,37 +17,35 @@
 #pragma config WRTB = OFF, WRTC = OFF, WRTD = OFF                           // CONFIG6H
 #pragma config EBTR0 = OFF, EBTR1 = OFF, EBTR2 = OFF, EBTR3 = OFF           // CONFIG7L
 #pragma config EBTRB = OFF
-
-#include <xc.h>
 #include "p18f46k20.h"
 #include "12 CCP PWM.h"
 #include <string.h>
 
-enum PowerLevel
-{
-    Off, Low, MediumLow, Medium, MediumHigh, High
-};
 
-void SetPowerLevel(PowerLevel powerLevel);
+void SetPowerLevel(int powerLevel);
 void PrintToScreen(char lineOneMessage[], char lineTwoMessage[]);
-void IncreasePower(PowerLevel currentPowerLevel);
-void DecreasePower(PowerLevel currentPowerLevel);
-
-unsigned char power = 0;
+int IncreasePower(int currentPower);
+int DecreasePower(int currentPower);
 
 void main(void) 
 {
-    
+    int power = 5;
     // Setup RD7/P1D as output
     TRISDbits.TRISD7 = 0;
     
     //Scale timer to 1:16
     T2CON = 0b00000111;
     PR2 = 249;
-    CCPR1L = 0x7D;
+    SetPowerLevel(power);
     CCP1CON = 0b01001100;
-    
-    SetPowerLevel(PowerLevel.Off);
+	power = DecreasePower(power);
+	power = DecreasePower(power);
+	//Delay1KTCYx(100);
+	power = DecreasePower(power);
+	
+
+
+
     
     //Prevents main function from accessing invalid memory
     while(1);
@@ -55,68 +53,71 @@ void main(void)
 
 /**
  * Increases power level by one
- * @param currentPowerLevel Current power level
  */
-void IncreasePower(PowerLevel currentPowerLevel)
+int IncreasePower(int currentPower)
 {
-    //TODO: Write logic here
+	if (currentPower < 5)
+	{
+		SetPowerLevel(++currentPower);
+	}
+	return currentPower;
 }
 
 /**
  * Decrease power level by one
- * @param currentPowerLevel  Current power level
  */
-void DecreasePower(PowerLevel currentPowerLevel)
+int DecreasePower(int currentPower)
 {
-    //TODO: Write logic here
+	if (currentPower > 0)
+	{
+		SetPowerLevel(--currentPower);
+	}
+	return currentPower;
 }
 
 /**
  * This function sets the power value depends on the PowerLevel enum
  * @param powerLevel Power level to set
  */
-void SetPowerLevel(PowerLevel powerLevel)
+void SetPowerLevel(int powerLevel)
 {
     switch (powerLevel)
     {
-        case PowerLevel.Off:
+        case 0:
         {
-            power = 0;
+            CCPR1L = 0;
             break;
         }
-        case PowerLevel.Low:
+        case 1:
         {
-            power = 50;
+            CCPR1L = 50;
             break;
         }
-        case PowerLevel.MediumLow:
+        case 2:
         {
-            power = 100;
+            CCPR1L = 100;
             break;
         }
-        case PowerLevel.Medium:
+        case 3:
         {
-            power = 150;
+            CCPR1L = 150;
             break;
         }
-        case PowerLevel.MediumHigh:
+        case 4:
         {
-            power = 200;
+            CCPR1L = 200;
             break;
         }
-        case PowerLevel.High:
+        case 5:
         {
-            power = 250;
+            CCPR1L = 250;
             break;
         }
         default:
         {
-            power = 0;
+            CCPR1L = 0;
             break;
         }
-        
-        //Sets the value to the PICKIT
-        CCPR1L = power;
     }
 }
 
