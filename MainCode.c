@@ -22,7 +22,9 @@
 /** D E C L A R A T I O N S *******************************************/
 #pragma code    // declare executable instructions
 #define Switch_Pin2	PORTBbits.RB1
+#define Switch_Pin3 PORTBbits.RB3
 
+int Check_on_or_Off (int CurrentPower);
 int Check_Speed(int CurrentPower);
 void SetPowerLevel(int powerLevel);
 void PrintToScreen(char lineOneMessage[], char lineTwoMessage[]);
@@ -49,8 +51,11 @@ void main (void)
     //TRISBbits.TRISB1 = 1;       // PORTB bit 0 (connected to switch) is input (1)
 	
     while (1){
+		power = Check_on_or_Off(power);
+		if(power >0){
 		power = Check_Speed(power);
 		}
+	}
 }
 	
 	int Check_Speed(int CurrentPower)
@@ -67,6 +72,7 @@ void main (void)
             else
             {
                 Switch_Count = 0;
+				return CurrentPower;
             }   
             Delay10TCYx(25);    // delay 250 cycles or 1ms.
         } while (Switch_Count < DetectsInARow);
@@ -85,6 +91,7 @@ void main (void)
             else
             {
                 Switch_Count = 0;
+				return CurrentPower;
             }   
             Delay10TCYx(25);    // delay 250 cycles or 1ms.
         } while (Switch_Count < DetectsInARow);
@@ -115,7 +122,7 @@ int IncreasePower(int currentPower)
  */
 int DecreasePower(int currentPower)
 {
-	if (currentPower > 0)
+	if (currentPower > 1)
 	{
 		SetPowerLevel(--currentPower);
 	}
@@ -166,5 +173,34 @@ void SetPowerLevel(int powerLevel)
             break;
         }
     }
+}
+
+int Check_on_or_Off (int CurrentPower){
+
+		int Switch_Count = 0;
+	if (Switch_Pin3 == 0){
+		do
+        { // monitor switch input for 5 lows in a row to debounce
+            if ((Switch_Pin3 == 0))
+            { // pressed state detected
+                Switch_Count++;
+            }
+            else
+            {
+                Switch_Count = 0;
+				return CurrentPower;
+            }   
+            Delay10TCYx(25);    // delay 250 cycles or 1ms.
+        } while (Switch_Count < DetectsInARow);
+       	while (Switch_Pin3 != 1);
+		if(CurrentPower == 0){
+			SetPowerLevel(1);
+			return 1; 
+			}
+		else {
+			SetPowerLevel(0);
+			return 0;
+			}
+	}
 }
 
