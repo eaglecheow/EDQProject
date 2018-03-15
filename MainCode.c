@@ -1,54 +1,101 @@
-/*
- * File:   MainCode.c
- * Author: kecy6cyt
- *
- * Created on March 7, 2018, 2:09 PM
- */
-
-//Configuration
 #pragma config FOSC = INTIO67, FCMEN = OFF, IESO = OFF                       // CONFIG1H
 #pragma config PWRT = OFF, BOREN = SBORDIS, BORV = 30                        // CONFIG2L
 #pragma config WDTEN = OFF, WDTPS = 32768                                     // CONFIG2H
-#pragma config MCLRE = ON, LPT1OSC = OFF, PBADEN = OFF, CCP2MX = PORTC      // CONFIG3H
+#pragma config MCLRE = ON, LPT1OSC = OFF, PBADEN = ON, CCP2MX = PORTC       // CONFIG3H
 #pragma config STVREN = ON, LVP = OFF, XINST = OFF                          // CONFIG4L
 #pragma config CP0 = OFF, CP1 = OFF, CP2 = OFF, CP3 = OFF                   // CONFIG5L
 #pragma config CPB = OFF, CPD = OFF                                         // CONFIG5H
 #pragma config WRT0 = OFF, WRT1 = OFF, WRT2 = OFF, WRT3 = OFF               // CONFIG6L
 #pragma config WRTB = OFF, WRTC = OFF, WRTD = OFF                           // CONFIG6H
 #pragma config EBTR0 = OFF, EBTR1 = OFF, EBTR2 = OFF, EBTR3 = OFF           // CONFIG7L
-#pragma config EBTRB = OFF
+#pragma config EBTRB = OFF                                                  // CONFIG7H
+
+
+/** I N C L U D E S **************************************************/
 #include "p18f46k20.h"
-#include "12 CCP PWM.h"
-#include <string.h>
+#include "delays.h"
+#include "04 Switch Input.h"  // header file
 
+/** V A R I A B L E S *************************************************/
+#pragma udata   // declare statically allocated uinitialized variables
 
+/** D E C L A R A T I O N S *******************************************/
+#pragma code    // declare executable instructions
+#define Switch_Pin2	PORTBbits.RB1
+
+int Check_Speed(int CurrentPower);
 void SetPowerLevel(int powerLevel);
 void PrintToScreen(char lineOneMessage[], char lineTwoMessage[]);
 int IncreasePower(int currentPower);
 int DecreasePower(int currentPower);
 
-void main(void) 
+
+void main (void)
 {
-    int power = 5;
-    // Setup RD7/P1D as output
-    TRISDbits.TRISD7 = 0;
-    
-    //Scale timer to 1:16
-    T2CON = 0b00000111;
-    PR2 = 249;
-    SetPowerLevel(power);
-    CCP1CON = 0b01001100;
-	power = DecreasePower(power);
-	power = DecreasePower(power);
-	//Delay1KTCYx(100);
-	power = DecreasePower(power);
+	int power = 0;
+
+    TRISD = 0b01111111;     	// PORTD bits 7:0 are all outputs (0)
 	
+	T2CON = 0b00000111;
+	PR2 = 249;
+	CCPR1L = 0;
+	CCP1CON = 0b01001100;
 
+	INTCON2bits.RBPU = 0;		// enable PORTB internal pullups
+	WPUBbits.WPUB1 = 1;	
+    WPUBbits.WPUB0 = 1;		// enable pull up on RB0
+    ANSELH = 0x00;              // AN8-12 are digital inputs (AN12 on RB0)
+	//TRISBbits.TRISB0 = 1;
+    //TRISBbits.TRISB1 = 1;       // PORTB bit 0 (connected to switch) is input (1)
+	
+    while (1){
+		power = Check_Speed(power);
+		}
+}
+	
+	int Check_Speed(int CurrentPower)
+{
+		
+	int Switch_Count = 0;
+	if ((Switch_Pin == 0) && (Switch_Pin2 != 0)){
+		do
+        { // monitor switch input for 5 lows in a row to debounce
+            if ((Switch_Pin == 0))
+            { // pressed state detected
+                Switch_Count++;
+            }
+            else
+            {
+                Switch_Count = 0;
+            }   
+            Delay10TCYx(25);    // delay 250 cycles or 1ms.
+        } while (Switch_Count < DetectsInARow);
+       	while (Switch_Pin != 1);
+		
+		return IncreasePower(CurrentPower);
+	}
+	
+	else if ((Switch_Pin2 == 0) && (Switch_Pin != 0)){
+		do
+        { // monitor switch input for 5 lows in a row to debounce
+            if ((Switch_Pin2 == 0))
+            { // pressed state detected
+                Switch_Count++;
+            }
+            else
+            {
+                Switch_Count = 0;
+            }   
+            Delay10TCYx(25);    // delay 250 cycles or 1ms.
+        } while (Switch_Count < DetectsInARow);
+       	while (Switch_Pin2 != 1);
 
-
-    
-    //Prevents main function from accessing invalid memory
-    while(1);
+	   return DecreasePower(CurrentPower);
+	}
+	
+	else {
+		return CurrentPower;
+	}	
 }
 
 /**
@@ -121,21 +168,3 @@ void SetPowerLevel(int powerLevel)
     }
 }
 
-/**
- * This function prints the message to the OLED screen on PICKIT
- * @param lineOneMessage First line of the message
- * @param lineTwoMessage Second line of the message
- */
-void PrintToScreen(char lineOneMessage[], char lineTwoMessage[])
-{
-    int counter = 0;
-    for (counter = 0; counter < strlen(lineOneMessage); counter++)
-    {
-        //TODO: Put print character function
-    }
-    //TODO: Print linebreak character
-    for (counter = 0; counter < strlen(lineTwoMessage); counter++)
-    {
-        //TODO: Put print character function
-    }
-}
