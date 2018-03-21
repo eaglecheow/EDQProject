@@ -23,8 +23,10 @@
 #pragma code    // declare executable instructions
 #define Switch_Pin2	PORTBbits.RB1
 #define Switch_Pin3 PORTBbits.RB3
+#define Switch_Pin4 PORTBbits.RB2
 
-int Check_on_or_Off (int CurrentPower);
+int Check_Motor_Direc(int motor_direc_value);
+int Check_on_or_Off (int Current_Power);
 int Check_Speed(int CurrentPower);
 void SetPowerLevel(int powerLevel);
 void PrintToScreen(char lineOneMessage[], char lineTwoMessage[]);
@@ -35,13 +37,13 @@ int DecreasePower(int currentPower);
 void main (void)
 {
 	int power = 0;
+	int motor_direc = 0; //CW rotation
 
-    TRISD = 0b01111111;     	// PORTD bits 7:0 are all outputs (0)
-	
+    TRISD = 0b00000000;     	// PORTD bits 7:0 are all outputs (0)
 	T2CON = 0b00000111;
 	PR2 = 249;
 	CCPR1L = 0;
-	CCP1CON = 0b01001100;
+	CCP1CON = 0b11001100;
 
 	INTCON2bits.RBPU = 0;		// enable PORTB internal pullups
 	WPUBbits.WPUB1 = 1;	
@@ -52,9 +54,12 @@ void main (void)
 	
     while (1){
 		power = Check_on_or_Off(power);
-		if(power >0){
+		//Delay10TCYx(1000);
+		motor_direc = Check_Motor_Direc(motor_direc);
+		//power = Check_on_or_Off(power);
+		
 		power = Check_Speed(power);
-		}
+		
 	}
 }
 	
@@ -175,7 +180,7 @@ void SetPowerLevel(int powerLevel)
     }
 }
 
-int Check_on_or_Off (int CurrentPower){
+int Check_on_or_Off (int Current_Power){
 
 		int Switch_Count = 0;
 	if (Switch_Pin3 == 0){
@@ -188,19 +193,49 @@ int Check_on_or_Off (int CurrentPower){
             else
             {
                 Switch_Count = 0;
-				return CurrentPower;
+				return Current_Power;
             }   
             Delay10TCYx(25);    // delay 250 cycles or 1ms.
         } while (Switch_Count < DetectsInARow);
        	while (Switch_Pin3 != 1);
-		if(CurrentPower == 0){
-			SetPowerLevel(1);
-			return 1; 
-			}
-		else {
 			SetPowerLevel(0);
 			return 0;
-			}
+		//if(Current_Power == 0){
+			//SetPowerLevel(1);
+			//return 1; 
+			//}
+	//	else {
+			//SetPowerLevel(0);
+		//	return 0;
+			//}
 	}
 }
 
+int Check_Motor_Direc(int motor_direc_value){
+		int Switch_Count = 0;
+	if (Switch_Pin4 == 0){
+		do
+        { // monitor switch input for 5 lows in a row to debounce
+            if ((Switch_Pin4 == 0))
+            { // pressed state detected
+                Switch_Count++;
+            }
+            else
+            {
+                Switch_Count = 0;
+				return motor_direc_value;
+            }   
+            Delay10TCYx(25);    // delay 250 cycles or 1ms.
+        } while (Switch_Count < DetectsInARow);
+       	while (Switch_Pin4 != 1);
+		if(motor_direc_value == 0){
+			CCP1CON = 0b01001100;
+			return 1; 
+			}
+		else {
+			CCP1CON = 0b11001100;
+			return 0;
+			}
+	}
+	return motor_direc_value;
+}
