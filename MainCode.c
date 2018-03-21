@@ -15,6 +15,8 @@
 #include "p18f46k20.h"
 #include "delays.h"
 #include "04 Switch Input.h"  // header file
+#include "12 CCP PWM.h"
+#include <string.h>
 
 /** V A R I A B L E S *************************************************/
 #pragma udata   // declare statically allocated uinitialized variables
@@ -29,13 +31,19 @@ int Check_Motor_Direc(int motor_direc_value);
 int Check_on_or_Off (int Current_Power);
 int Check_Speed(int CurrentPower);
 void SetPowerLevel(int powerLevel);
-void PrintToScreen(char lineOneMessage[], char lineTwoMessage[]);
 int IncreasePower(int currentPower);
 int DecreasePower(int currentPower);
+void InitializeSystem(void);
+void PrintToScreen(char* message);
 
 
 void main (void)
 {
+    //Initialize System and wait for 30000 until init finish
+    InitializeSystem();
+    delay = 30000;
+	while(delay--);
+
 	int power = 0;
 	int motor_direc = 0; //CW rotation
 
@@ -238,4 +246,100 @@ int Check_Motor_Direc(int motor_direc_value){
 			}
 	}
 	return motor_direc_value;
+}
+
+/**
+ * Initializes the OLED
+ */
+void InitializeSystem(void)
+{
+
+	OSCCON = 0b01110000;
+	OSCTUNEbits.PLLEN = 0; 					// turn off the PLL
+
+	// Setup I/O Ports.
+	
+	TRISA = 0;								// TRISA outputs
+	LATA = 0b11110000;						// drive PORTA pins low
+
+	oled_res = 1;							// do not reset LCD yet
+	oled_cs = 1;							// do not select the LCD
+
+	TRISB = 0b11001111;
+
+
+	LATC = 0b00101000;
+	TRISC = 0b00000000;
+
+	TRISD = 0;								// TRISD is LED output
+	LATD = 0;								// turn off LEDS
+
+	TRISE = 0b00000111;
+
+	//configure buttons
+	WPUB = 0b00001111;
+	INTCON2bits.RBPU = 0; 					// turn on weak pull ups for RB0-RB3
+
+	INTCONbits.INT0IF = 0;					// clear RB0 INT
+	INTCONbits.INT0IE = 1;					// enable RB0 INT
+	INTCON2bits.INTEDG0 = 0;				// interrupt on falling edge 
+
+	INTCON3bits.INT1IF = 0;					// clear RB1 INT
+	INTCON3bits.INT1IE = 1;					// enable RB1 INT	
+	INTCON2bits.INTEDG1 = 0;				// interrupt on falling edge
+
+	INTCON3bits.INT2IF = 0;					// clear RB2 INT
+	INTCON3bits.INT2IE = 1;					// enable RB2 INT
+	INTCON2bits.INTEDG2 = 0;				// interrupt on falling edge
+
+	
+	// Setup analog functionality
+	ANSEL = 0x00;							// all pins digital
+	ANSELH = 0x00;
+	
+	ANSELbits.ANS6=1;						// RE2 is a temperature input
+
+
+	ADCON1=0;								// Reference Vdd and Vss
+	ADCON2=0b10001100;						// right, AN6, 2 Tad, Fosc/64
+	ADCON0=0b00011101;						// turn on ADC
+
+
+	// Setup TMR1
+	// Configure Timer 1
+	T1CON 	= 0b00001111;
+
+		
+	// Setup TMR2
+	T2CON = 0b00000100;						// 1:1 prescaler
+	PR2 = 0xFF;
+	T0CON = 0x80;
+
+	// Configure MSSP for SPI master mode
+	SSPCON1 = 0b00110010;					// clock idle high, Clk /64
+
+	SSPSTAT = 0b00000000;
+
+	PIR1bits.TMR1IF = 0; 
+	PIE1bits.TMR1IE = 1; 
+
+	INTCONbits.PEIE = 1; 
+	INTCONbits.GIE = 0; 
+
+    oled_init();
+
+} // end InitializeSystem
+
+/**
+ * Prints the message to the OLED screen
+ * @param message Message to display
+ */ 
+void PrintToScreen(char* message)
+{
+    oled_clear();
+    oled_refresh();
+    for (int i = 0; i < strlen(message); i++)
+    {
+        oled_putc_2x(message[i]);
+    }
 }
