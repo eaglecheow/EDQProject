@@ -12,11 +12,13 @@
 
 
 /** I N C L U D E S **************************************************/
-#include "p18f46k20.h"
+#include <p18f46k20.h>
 #include "delays.h"
 #include "04 Switch Input.h"  // header file
-#include "12 CCP PWM.h"
+//#include "12 CCP PWM.h"
 #include <string.h>
+#include "oled.h"
+#include "oled_interface.h"
 
 /** V A R I A B L E S *************************************************/
 #pragma udata   // declare statically allocated uinitialized variables
@@ -33,18 +35,19 @@ int Check_Speed(int CurrentPower);
 void SetPowerLevel(int powerLevel);
 int IncreasePower(int currentPower);
 int DecreasePower(int currentPower);
+void PrintToScreen();
+char NumberToChar(int number);
+
 void InitializeSystem(void);
-void PrintToScreen(char* message);
+
+int temperature = 0;
+int speed = 0;
+int power = 0;
+
 
 
 void main (void)
 {
-    //Initialize System and wait for 30000 until init finish
-    InitializeSystem();
-    delay = 30000;
-	while(delay--);
-
-	int power = 0;
 	int motor_direc = 0; //CW rotation
 
     TRISD = 0b00000000;     	// PORTD bits 7:0 are all outputs (0)
@@ -57,21 +60,27 @@ void main (void)
 	WPUBbits.WPUB1 = 1;	
     WPUBbits.WPUB0 = 1;		// enable pull up on RB0
     ANSELH = 0x00;              // AN8-12 are digital inputs (AN12 on RB0)
-	//TRISBbits.TRISB0 = 1;
-    //TRISBbits.TRISB1 = 1;       // PORTB bit 0 (connected to switch) is input (1)
-	
+
+	InitializeSystem();
+
+	Delay10TCYx(3000);
+
+	oled_init();
+
     while (1){
 		power = Check_on_or_Off(power);
 		//Delay10TCYx(1000);
 		motor_direc = Check_Motor_Direc(motor_direc);
 		//power = Check_on_or_Off(power);
-		
-		power = Check_Speed(power);
+		if (power> 0)
+		{
+			power = Check_Speed(power);	
+		}
 		
 	}
 }
 	
-	int Check_Speed(int CurrentPower)
+int Check_Speed(int CurrentPower)
 {
 		
 	int Switch_Count = 0;
@@ -206,16 +215,14 @@ int Check_on_or_Off (int Current_Power){
             Delay10TCYx(25);    // delay 250 cycles or 1ms.
         } while (Switch_Count < DetectsInARow);
        	while (Switch_Pin3 != 1);
+		if(Current_Power == 0){
+			SetPowerLevel(1);
+			return 1; 
+			}
+		else {
 			SetPowerLevel(0);
 			return 0;
-		//if(Current_Power == 0){
-			//SetPowerLevel(1);
-			//return 1; 
-			//}
-	//	else {
-			//SetPowerLevel(0);
-		//	return 0;
-			//}
+			}
 	}
 }
 
@@ -265,8 +272,6 @@ void InitializeSystem(void)
 	oled_res = 1;							// do not reset LCD yet
 	oled_cs = 1;							// do not select the LCD
 
-	TRISB = 0b11001111;
-
 
 	LATC = 0b00101000;
 	TRISC = 0b00000000;
@@ -275,22 +280,6 @@ void InitializeSystem(void)
 	LATD = 0;								// turn off LEDS
 
 	TRISE = 0b00000111;
-
-	//configure buttons
-	WPUB = 0b00001111;
-	INTCON2bits.RBPU = 0; 					// turn on weak pull ups for RB0-RB3
-
-	INTCONbits.INT0IF = 0;					// clear RB0 INT
-	INTCONbits.INT0IE = 1;					// enable RB0 INT
-	INTCON2bits.INTEDG0 = 0;				// interrupt on falling edge 
-
-	INTCON3bits.INT1IF = 0;					// clear RB1 INT
-	INTCON3bits.INT1IE = 1;					// enable RB1 INT	
-	INTCON2bits.INTEDG1 = 0;				// interrupt on falling edge
-
-	INTCON3bits.INT2IF = 0;					// clear RB2 INT
-	INTCON3bits.INT2IE = 1;					// enable RB2 INT
-	INTCON2bits.INTEDG2 = 0;				// interrupt on falling edge
 
 	
 	// Setup analog functionality
@@ -326,7 +315,7 @@ void InitializeSystem(void)
 	INTCONbits.PEIE = 1; 
 	INTCONbits.GIE = 0; 
 
-    oled_init();
+    //oled_init();
 
 } // end InitializeSystem
 
@@ -334,12 +323,116 @@ void InitializeSystem(void)
  * Prints the message to the OLED screen
  * @param message Message to display
  */ 
-void PrintToScreen(char* message)
+void PrintToScreen()
 {
-    oled_clear();
-    oled_refresh();
-    for (int i = 0; i < strlen(message); i++)
-    {
-        oled_putc_2x(message[i]);
-    }
+	//oled_init();
+	oled_clear();
+	oled_refresh();
+
+	oled_putc_2x('S');
+	oled_putc_2x('t');
+	oled_putc_2x('a');
+	oled_putc_2x('t');
+	oled_putc_2x('u');
+	oled_putc_2x('s');
+	oled_putc_2x('\t');
+	oled_putc_2x('\t');
+	oled_putc_2x('\t');
+	oled_putc_2x(':');
+	oled_putc_2x(' ');
+	oled_putc_2x('O');
+	oled_putc_2x((power == 0)?'F':'N');
+	oled_putc_2x((power == 0)?'F':' ');
+
+	oled_putc_2x('\n');
+
+	oled_putc_2x('T');
+	oled_putc_2x('e');
+	oled_putc_2x('m');
+	oled_putc_2x('p');
+	oled_putc_2x('.');
+	oled_putc_2x('\t');
+	oled_putc_2x('\t');
+	oled_putc_2x('\t');
+	oled_putc_2x(' ');
+	oled_putc_2x(':');
+	oled_putc_2x(' ');
+	oled_putc_2x(NumberToChar(temperature/10));
+	oled_putc_2x(NumberToChar(temperature%10));
+
+	oled_putc_2x('\n');
+
+	oled_putc_2x('S');
+	oled_putc_2x('p');
+	oled_putc_2x('e');
+	oled_putc_2x('e');
+	oled_putc_2x('d');
+	oled_putc_2x('\t');
+	oled_putc_2x('\t');
+	oled_putc_2x('\t');
+	oled_putc_2x(' ');
+	oled_putc_2x(':');
+	oled_putc_2x(' ');
+	oled_putc_2x(NumberToChar(speed/10));
+	oled_putc_2x(NumberToChar(speed%10));
+
+	oled_putc_2x('\n');
+
+	oled_putc_2x('D');
+	oled_putc_2x('i');
+	oled_putc_2x('r');
+	oled_putc_2x('e');
+	oled_putc_2x('c');
+	oled_putc_2x('t');
+	oled_putc_2x('i');
+	oled_putc_2x('o');
+	oled_putc_2x('n');
+	oled_putc_2x('\t');
+	oled_putc_2x('\t');
+	oled_putc_2x(':');
+	oled_putc_2x(' ');
+	oled_putc_2x((CCP1CON == 0b01001100)?'L':'R');
+
+
+
+	oled_refresh();
+}
+
+char NumberToChar(int number)
+{
+	char c = '/0';
+	switch (number)
+	{
+		case 0:
+		c = '0';
+		break;	
+		case 1:
+		c = '1';
+		break;	
+		case 2:
+		c = '2';
+		break;	
+		case 3:
+		c = '3';
+		break;	
+		case 4:
+		c = '4';
+		break;	
+		case 5:
+		c = '5';
+		break;	
+		case 6:
+		c = '6';
+		break;	
+		case 7:
+		c = '7';
+		break;	
+		case 8:
+		c = '8';
+		break;	
+		case 9:
+		c = '9';
+		break;		
+	}
+	return c;
 }
