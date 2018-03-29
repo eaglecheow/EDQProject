@@ -30,18 +30,20 @@
 #define Switch_Pin4 PORTBbits.RB2
 
 int Check_Motor_Direc(int motor_direc_value);
-int Check_on_or_Off (int Current_Power);
-int Check_Speed(int CurrentPower);
+void Check_on_or_Off ();
+void Check_Speed();
 void SetPowerLevel(int powerLevel);
-int IncreasePower(int currentPower);
-int DecreasePower(int currentPower);
+void IncreasePower();
+void DecreasePower();
 void PrintToScreen();
 char NumberToChar(int number);
+unsigned int ReadTemperature();
+void InitializeADC();
 
 void InitializeSystem(void);
 
 int temperature = 0;
-int speed = 0;
+//int speed = 0;
 int power = 0;
 
 
@@ -61,28 +63,36 @@ void main (void)
     WPUBbits.WPUB0 = 1;		// enable pull up on RB0
     ANSELH = 0x00;              // AN8-12 are digital inputs (AN12 on RB0)
 
+	InitializeADC();
+
 	InitializeSystem();
 
 	Delay10TCYx(3000);
 
 	oled_init();
 
+	PrintToScreen();
     while (1){
-		power = Check_on_or_Off(power);
+		Check_on_or_Off();
 		//Delay10TCYx(1000);
 		motor_direc = Check_Motor_Direc(motor_direc);
 		//power = Check_on_or_Off(power);
 		if (power> 0)
 		{
-			power = Check_Speed(power);	
+			Check_Speed();	
 		}
-		
+/*
+		if (counter++ % 1000 == 0)
+		{
+			PrintToScreen();
+			counter = 1;
+		}
+*/
 	}
 }
 	
-int Check_Speed(int CurrentPower)
+void Check_Speed()
 {
-		
 	int Switch_Count = 0;
 	if ((Switch_Pin == 0) && (Switch_Pin2 != 0)){
 		do
@@ -94,13 +104,11 @@ int Check_Speed(int CurrentPower)
             else
             {
                 Switch_Count = 0;
-				return CurrentPower;
             }   
             Delay10TCYx(25);    // delay 250 cycles or 1ms.
         } while (Switch_Count < DetectsInARow);
        	while (Switch_Pin != 1);
-		
-		return IncreasePower(CurrentPower);
+		IncreasePower();
 	}
 	
 	else if ((Switch_Pin2 == 0) && (Switch_Pin != 0)){
@@ -113,42 +121,37 @@ int Check_Speed(int CurrentPower)
             else
             {
                 Switch_Count = 0;
-				return CurrentPower;
             }   
             Delay10TCYx(25);    // delay 250 cycles or 1ms.
         } while (Switch_Count < DetectsInARow);
        	while (Switch_Pin2 != 1);
 
-	   return DecreasePower(CurrentPower);
+	   DecreasePower();
 	}
-	
-	else {
-		return CurrentPower;
-	}	
 }
 
 /**
  * Increases power level by one
  */
-int IncreasePower(int currentPower)
+void IncreasePower()
 {
-	if (currentPower < 5)
+	if (power < 5)
 	{
-		SetPowerLevel(++currentPower);
+		SetPowerLevel(++power);
 	}
-	return currentPower;
+	temperature = ReadTemperature();
 }
 
 /**
  * Decrease power level by one
  */
-int DecreasePower(int currentPower)
+void DecreasePower()
 {
-	if (currentPower > 1)
+	if (power > 1)
 	{
-		SetPowerLevel(--currentPower);
+		SetPowerLevel(--power);
 	}
-	return currentPower;
+	temperature = ReadTemperature();
 }
 
 /**
@@ -161,43 +164,51 @@ void SetPowerLevel(int powerLevel)
     {
         case 0:
         {
+			power = 0;
             CCPR1L = 0;
             break;
         }
         case 1:
         {
+			power = 1;
             CCPR1L = 50;
             break;
         }
         case 2:
         {
+			power = 2;
             CCPR1L = 100;
             break;
         }
         case 3:
         {
+			power = 3;
             CCPR1L = 150;
             break;
         }
         case 4:
         {
+			power = 4;
             CCPR1L = 200;
             break;
         }
         case 5:
         {
+			power = 5;
             CCPR1L = 250;
             break;
         }
         default:
         {
+			power = 0;
             CCPR1L = 0;
             break;
         }
     }
+	PrintToScreen();
 }
 
-int Check_on_or_Off (int Current_Power){
+void Check_on_or_Off (){
 
 		int Switch_Count = 0;
 	if (Switch_Pin3 == 0){
@@ -210,18 +221,15 @@ int Check_on_or_Off (int Current_Power){
             else
             {
                 Switch_Count = 0;
-				return Current_Power;
             }   
             Delay10TCYx(25);    // delay 250 cycles or 1ms.
         } while (Switch_Count < DetectsInARow);
        	while (Switch_Pin3 != 1);
-		if(Current_Power == 0){
-			SetPowerLevel(1);
-			return 1; 
+		if(power == 0){
+			SetPowerLevel(1); 
 			}
 		else {
 			SetPowerLevel(0);
-			return 0;
 			}
 	}
 }
@@ -245,10 +253,12 @@ int Check_Motor_Direc(int motor_direc_value){
        	while (Switch_Pin4 != 1);
 		if(motor_direc_value == 0){
 			CCP1CON = 0b01001100;
+			PrintToScreen();
 			return 1; 
 			}
 		else {
 			CCP1CON = 0b11001100;
+			PrintToScreen();
 			return 0;
 			}
 	}
@@ -357,6 +367,7 @@ void PrintToScreen()
 	oled_putc_2x(' ');
 	oled_putc_2x(':');
 	oled_putc_2x(' ');
+	oled_putc_2x(NumberToChar(temperature/100));
 	oled_putc_2x(NumberToChar(temperature/10));
 	oled_putc_2x(NumberToChar(temperature%10));
 
@@ -373,8 +384,10 @@ void PrintToScreen()
 	oled_putc_2x(' ');
 	oled_putc_2x(':');
 	oled_putc_2x(' ');
-	oled_putc_2x(NumberToChar(speed/10));
-	oled_putc_2x(NumberToChar(speed%10));
+	//oled_putc_2x(NumberToChar(speed/10));
+	//oled_putc_2x(NumberToChar(speed%10));
+	oled_putc_2x('0');
+	oled_putc_2x(NumberToChar(power));
 
 	oled_putc_2x('\n');
 
@@ -435,4 +448,20 @@ char NumberToChar(int number)
 		break;		
 	}
 	return c;
+}
+
+void InitializeADC()
+{
+	ANSEL = 0;
+	ANSELH = 0;
+	ANSELbits.ANS5 = 1;
+	ADCON2 = 0b00111000;
+	ADCON0 = 0b00010101;
+}
+
+unsigned int ReadTemperature()
+{
+	ADCON0bits.GO_DONE = 1;
+	while (ADCON0bits.GO_DONE == 1);
+	return ADRESH;
 }
