@@ -74,23 +74,18 @@ void main (void)
 	PrintToScreen();
     while (1){
 		Check_on_or_Off();
-		//Delay10TCYx(1000);
 		motor_direc = Check_Motor_Direc(motor_direc);
-		//power = Check_on_or_Off(power);
 		if (power> 0)
 		{
 			Check_Speed();	
 		}
-/*
-		if (counter++ % 1000 == 0)
-		{
-			PrintToScreen();
-			counter = 1;
-		}
-*/
+        //TODO: Check temperature and decides if buzzer should be turned on
 	}
 }
-	
+
+/**
+ * Checks for button input, changes the speed of the motor
+ */	
 void Check_Speed()
 {
 	int Switch_Count = 0;
@@ -208,6 +203,9 @@ void SetPowerLevel(int powerLevel)
 	PrintToScreen();
 }
 
+/**
+ * Checks the button input, turns on/off the motor
+ */
 void Check_on_or_Off (){
 
 		int Switch_Count = 0;
@@ -234,6 +232,11 @@ void Check_on_or_Off (){
 	}
 }
 
+/**
+ * Checks for button input and change the motor direction
+ * @param motor_direc_value Current direction of the motor
+ * @return New direction of the motor
+ */
 int Check_Motor_Direc(int motor_direc_value){
 		int Switch_Count = 0;
 	if (Switch_Pin4 == 0){
@@ -411,6 +414,10 @@ void PrintToScreen()
 	oled_refresh();
 }
 
+/**
+ * Converts integer to it's respective char
+ * @param number Number in integer form
+ */
 char NumberToChar(int number)
 {
 	char c = '/0';
@@ -450,8 +457,12 @@ char NumberToChar(int number)
 	return c;
 }
 
+/**
+ * Initialize the ADC system
+ */
 void InitializeADC()
 {
+    //TODO: Check to see if any parameters can be changed
 	ANSEL = 0;
 	ANSELH = 0;
 	ANSELbits.ANS5 = 1;
@@ -459,9 +470,18 @@ void InitializeADC()
 	ADCON0 = 0b00010101;
 }
 
+/**
+ * Reads the temperature from the device, also the ADC
+ */
 unsigned int ReadTemperature()
 {
+    //TODO: Check with physical device again
+    const MaxDeviceValue = 1024;
+    const MinDeviceValue = 0;
+
 	ADCON0bits.GO_DONE = 1;
 	while (ADCON0bits.GO_DONE == 1);
-	return ADRESH;
+	int deviceValue = ADRESH;
+
+    return((deviceValue - MinDeviceValue)/(MaxDeviceValue - MinDeviceValue));
 }
