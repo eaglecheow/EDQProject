@@ -73,8 +73,6 @@ void main (void)
 	Delay10TCYx(3000);
 
 	oled_init();
-
-	PrintToScreen();
     while (1){
 		Check_on_or_Off();
 		motor_direc = Check_Motor_Direc(motor_direc);
@@ -91,6 +89,7 @@ void main (void)
         {
             LATDbits.LATD7 = 0;
         }
+		PrintToScreen();
 	}
 }
 
@@ -211,7 +210,6 @@ void SetPowerLevel(int powerLevel)
             break;
         }
     }
-	PrintToScreen();
 }
 
 /**
@@ -267,12 +265,10 @@ int Check_Motor_Direc(int motor_direc_value){
        	while (Switch_Pin4 != 1);
 		if(motor_direc_value == 0){
 			CCP1CON = 0b01001100;
-			PrintToScreen();
 			return 1; 
 			}
 		else {
 			CCP1CON = 0b11001100;
-			PrintToScreen();
 			return 0;
 			}
 	}
@@ -300,10 +296,10 @@ void InitializeSystem(void)
 	LATC = 0b00101000;
 	TRISC = 0b00000000;
 
-	TRISD = 0;								// TRISD is LED output
-	LATD = 0;								// turn off LEDS
+	//TRISD = 0;								// TRISD is LED output
+	//LATD = 0;								// turn off LEDS
 
-	TRISE = 0b00000111;
+	//TRISE = 0b00000111;
 
 
 	// Setup TMR1
@@ -341,7 +337,7 @@ void PrintToScreen()
 	
 	//oled_init();
 	oled_clear();
-	oled_refresh();
+	//oled_refresh();
 
 	oled_putc_2x('S');
 	oled_putc_2x('t');
@@ -468,7 +464,7 @@ void InitializeADC()
 	ANSELH = 0;
 	ANSELbits.ANS5 = 1;
 	ADCON2 = 0b00111000;
-	ADCON0 = 0b00010101;
+	ADCON0 = 0b00010101; 
 }
 
 /**
