@@ -46,6 +46,11 @@ int temperature = 0;
 //int speed = 0;
 int power = 0;
 
+//Constants
+const int WarningTemperature = 50;
+const int MaxDeviceValue = 1024;
+const int MinDeviceValue = 0;
+
 
 
 void main (void)
@@ -79,7 +84,15 @@ void main (void)
 		{
 			Check_Speed();	
 		}
-        //TODO: Check temperature and decides if buzzer should be turned on
+        temperature = ReadTemperature();
+        if (temperature > WarningTemperature)
+        {
+            LATDbits.LATD7 = 1;
+        }
+        else 
+        {
+            LATDbits.LATD7 = 0;
+        }
 	}
 }
 
@@ -294,18 +307,6 @@ void InitializeSystem(void)
 
 	TRISE = 0b00000111;
 
-	
-	// Setup analog functionality
-	ANSEL = 0x00;							// all pins digital
-	ANSELH = 0x00;
-	
-	ANSELbits.ANS6=1;						// RE2 is a temperature input
-
-
-	ADCON1=0;								// Reference Vdd and Vss
-	ADCON2=0b10001100;						// right, AN6, 2 Tad, Fosc/64
-	ADCON0=0b00011101;						// turn on ADC
-
 
 	// Setup TMR1
 	// Configure Timer 1
@@ -475,10 +476,6 @@ void InitializeADC()
  */
 unsigned int ReadTemperature()
 {
-    //TODO: Check with physical device again
-    const MaxDeviceValue = 1024;
-    const MinDeviceValue = 0;
-
 	ADCON0bits.GO_DONE = 1;
 	while (ADCON0bits.GO_DONE == 1);
 	int deviceValue = ADRESH;
