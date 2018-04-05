@@ -48,8 +48,6 @@ int power = 0;
 
 //Constants
 const int WarningTemperature = 50;
-const int MaxDeviceValue = 1024;
-const int MinDeviceValue = 0;
 
 
 
@@ -339,6 +337,8 @@ void InitializeSystem(void)
  */ 
 void PrintToScreen()
 {
+	temperature = ReadTemperature();
+	
 	//oled_init();
 	oled_clear();
 	oled_refresh();
@@ -372,7 +372,7 @@ void PrintToScreen()
 	oled_putc_2x(':');
 	oled_putc_2x(' ');
 	oled_putc_2x(NumberToChar(temperature/100));
-	oled_putc_2x(NumberToChar(temperature/10));
+	oled_putc_2x(NumberToChar((temperature/10)-(temperature/100)*10));
 	oled_putc_2x(NumberToChar(temperature%10));
 
 	oled_putc_2x('\n');
@@ -478,7 +478,6 @@ unsigned int ReadTemperature()
 {
 	ADCON0bits.GO_DONE = 1;
 	while (ADCON0bits.GO_DONE == 1);
-	int deviceValue = ADRESH;
 
-    return((deviceValue - MinDeviceValue)/(MaxDeviceValue - MinDeviceValue));
+	return (int)ADRESH;
 }
