@@ -82,6 +82,7 @@ void main (void)
 		{
 			Check_Speed();	
 		}
+
         temperature = ReadTemperature();
         if (temperature > WarningTemperature)
         {
@@ -477,8 +478,9 @@ unsigned int ReadTemperature()
 {
 	ADCON0bits.GO_DONE = 1;
 	while (ADCON0bits.GO_DONE == 1);
-
-	return (int)ADRESH;
+	
+	
+	return (int)(ADRESH * 1.3);
 }
 
 /**
