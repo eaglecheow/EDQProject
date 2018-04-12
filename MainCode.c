@@ -39,11 +39,13 @@ void PrintToScreen();
 char NumberToChar(int number);
 unsigned int ReadTemperature();
 void InitializeADC();
+void CircuitProtectionCheck();
 
 void InitializeSystem(void);
 
+int protectionCounter = 0;
 int temperature = 0;
-//int speed = 0;
+int speed = 0;
 int power = 0;
 
 //Constants
@@ -89,6 +91,7 @@ void main (void)
         {
             LATDbits.LATD7 = 0;
         }
+		CircuitProtectionCheck();
 		PrintToScreen();
 	}
 }
@@ -476,4 +479,23 @@ unsigned int ReadTemperature()
 	while (ADCON0bits.GO_DONE == 1);
 
 	return (int)ADRESH;
+}
+
+/**
+ * Checks if the motor works as expected with the power level given
+ */
+void CircuitProtectionCheck()
+{
+	if (power > 0 && speed < 1)
+	{
+		if (protectionCounter > 10)
+		{
+			SetPowerLevel(0);
+		}
+		protectionCounter++;
+	}
+	else
+	{
+		protectionCounter = 0;
+	}
 }
